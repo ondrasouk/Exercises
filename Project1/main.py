@@ -1,5 +1,6 @@
 import logging
 import argparse
+import pickle
 import sys
 from pathlib import Path
 from time import time
@@ -13,6 +14,8 @@ parser.add_argument('-s', '--save_model', action="store", type=str,
                     help="Train model and save it.")
 parser.add_argument('-l', '--load_model', action="store", type=str,
                     help="Load model (skips training) and do a prediction.")
+parser.add_argument('-ph', '--plot-history', action="store", type=str, default="",
+                    help="Plot training history and save figures it to folder.")
 parser.add_argument('--debug', action="store_true", default=False, help="More verbose logs.")
 args, unknown_args = parser.parse_known_args()
 
@@ -32,6 +35,7 @@ logger = logging.getLogger(__name__)  # get logger instance for this file
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
+import tikzplotlib
 import pandas as pd
 import cv2
 import tensorflow as tf
@@ -84,12 +88,22 @@ else:
     early_stopping = EarlyStopping(monitor="val_loss", patience=500)
     history = model.fit(x=x_train.to_numpy(), y=y_train_encoded, validation_split=0.01, epochs=20000, batch_size=128,
                         shuffle=True, callbacks=[early_stopping])
+    history_df = pd.DataFrame(history.history)
+    if args.save_model:
+        model.save(args.save_model)
+        history_df.to_csv(f"{args.save_model.rsplit('.', 1)[0]}.csv")
+    if args.plot_history:
+        Path(args.plot_history).mkdir(parents=False, exist_ok=False)
+        for key in history.history.keys():
+            plt.figure()
+            plt.semilogy(history.history[key])
+            plt.xlabel("Epochs")
+            plt.ylabel(key)
+            tikzplotlib.save(f"{args.plot_history}/{key}.tex")
+            plt.show()
 
 # Print model info
 model.summary()
-
-if args.save_model:
-    model.save(args.save_model)
 
 if args.predict:
     prediction = model.predict(x_test, batch_size=128)

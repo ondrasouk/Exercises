@@ -1,12 +1,16 @@
 import matplotlib.pyplot as plt
+import tikzplotlib
 import pandas as pd
 import logging
 import sys
 import argparse
+from pathlib import Path
 from itertools import combinations
 
 # setup logging
 parser = argparse.ArgumentParser()
+parser.add_argument('-s', '--save-fig', action="store_true", default=False,
+                    help="Save figures as .tex files (uses PGFPlots) to specified folder.")
 parser.add_argument('--debug', action="store_true", default=False)
 args, unknown_args = parser.parse_known_args()
 
@@ -36,4 +40,7 @@ x_train_colors = [color_dict[t] for t in y_train.target]
 for x, y in combinations(x_train.keys(), 2):
     logger.info(f"plotting {x}, {y}")
     x_train.plot.scatter(x=x, y=y, c=x_train_colors)
+    if args.save_fig:
+        Path("images").mkdir(exist_ok=True)
+        tikzplotlib.save(f"images/{x}-{y}.tex")
     plt.show()
